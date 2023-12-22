@@ -1,18 +1,22 @@
 {
-  "name": "remote-file-compare",
-  "version": "0.0.1",
+  "name": "vscode-extension-bade",
+  "version": "0.1.0",
   "engines": {
     "vscode": "^1.58.0"
   },
   "activationEvents": [
-    "onCommand:extension.compareFiles"
+    "onCommand:extension.compareFiles", "onCommand:extension.deployFile"
   ],
   "main": "./extension.js",
   "contributes": {
     "commands": [
       {
         "command": "extension.compareFiles",
-        "title": "Compare Files"
+        "title": "Bade: Compare Files"
+      },
+      {
+        "command": "extension.deployFile",
+        "title": "Bade: Deploy File"
       }
     ]
   },
