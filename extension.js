@@ -7,20 +7,14 @@ const path = require("path")
 let tmpFilePrefix = path.join(os.tmpdir(), "remote-file-compare-files-1703262838047.");
 
 function activate(context) {
-  const config = getConfig();
-  if(!config || !config.targets || !config.targets[0] || !config.targets[0].sshConfig || !config.targets[0].remoteWorkspaceDir) {
-    vscode.window.showErrorMessage('Failed to load configs for bade. Double check the settings.json file');
-  }
-  
-  const sshConfig = config.targets[0].sshConfig;
-  const remoteWorkspaceDir = config.targets[0].remoteWorkspaceDir
-
-  if(!sshConfig || !remoteWorkspaceDir) {
-    vscode.window.showErrorMessage('Failed to load configs for bade. Double check the settings.json file');
-    return;
-  }
-
   let compareFilesDisposable = vscode.commands.registerCommand('extension.compareFiles', async () => {
+    let config = parseConfig();
+    if(!config) {
+      return;
+    }
+
+    let {sshConfig, remoteWorkspaceDir} = config;
+    
     let localFilePath = vscode.window.activeTextEditor.document.uri.fsPath;
     if(!localFilePath) {
       const userInput = await vscode.window.showInputBox({
@@ -62,12 +56,19 @@ function activate(context) {
       // Show a side-by-side comparison
       vscode.commands.executeCommand('vscode.diff', vscode.Uri.file(localFilePath), vscode.Uri.file(tmpFilePath), `Local File ↔ ${sshConfig.host} File`);
     } catch (error) {
-      console.error(error);
+      console.error("Bade: ", error);
       vscode.window.showErrorMessage('Error comparing files. ' + error.message);
     }
   });
 
   let deployFileDisposable = vscode.commands.registerCommand('extension.deployFile', async () => {
+    let config = parseConfig();
+    if(!config) {
+      return;
+    }
+
+    let {sshConfig, remoteWorkspaceDir} = config;
+
     let localFilePath = vscode.window.activeTextEditor.document.uri.fsPath;
     if(!localFilePath) {
       const userInput = await vscode.window.showInputBox({
@@ -103,9 +104,9 @@ function activate(context) {
 
     try {
       await uploadLocalFile(sshConfig, localFilePath, remoteFilePath);
-      vscode.window.showInformationMessage(`Uploaded successfully to ${sshConfig.host}:${remoteFilePath}`);
+      vscode.window.showInformationMessage(`Deployed successfully to ${sshConfig.host}:${remoteFilePath}`);
     } catch (error) {
-      console.error(error);
+      console.error("Bade: ", error);
       vscode.window.showErrorMessage('Error deploying file. ' + error.message);
     }
   });
@@ -200,6 +201,28 @@ function uploadLocalFile(sshConfig, localFilePath, remoteFilePath) {
 
 function getConfig() {
   return vscode.workspace.getConfiguration().get('bade');
+}
+
+function parseConfig() {
+  const config = getConfig();
+  if(!config || !config.targets || !config.targets[0] || !config.targets[0].sshConfig || !config.targets[0].remoteWorkspaceDir) {
+    vscode.window.showErrorMessage('Failed to load configs for bade. Double check the settings.json file');
+    console.error("Bade: !config || !config.targets || !config.targets[0] || !config.targets[0].sshConfig || !config.targets[0].remoteWorkspaceDir")
+    console.error("Bade: The found config:" + JSON.stringify(config))
+    return null;
+  }
+
+  const sshConfig = config.targets[0].sshConfig;
+  sshConfig.privateKey = fs.readFileSync(sshConfig.privateKey);
+  const remoteWorkspaceDir = config.targets[0].remoteWorkspaceDir
+
+  if(!sshConfig || !remoteWorkspaceDir) {
+    vscode.window.showErrorMessage('Failed to load configs for bade. Double check the settings.json file');
+    console.error("Bade: !sshConfig || !remoteWorkspaceDir")
+    return null;
+  }
+
+  return {sshConfig, remoteWorkspaceDir}
 }
 
 exports.activate = activate;
