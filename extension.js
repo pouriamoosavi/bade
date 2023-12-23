@@ -59,13 +59,21 @@ async function activate(context) {
 }
 
 async function getLocalFilePath() {
-  let localFilePath = vscode.window.activeTextEditor.document.uri.fsPath;
+  let localFilePath = vscode.window?.activeTextEditor?.document?.uri?.fsPath;
   if(!localFilePath) {
-    const userInput = await vscode.window.showInputBox({
-      prompt: "No opened file found. Input the path of your local file here:",
-      placeHolder: 'Type here...'
+    const uris = await vscode.window.showOpenDialog({
+      canSelectFiles: true,
+      canSelectFolders: false,
+      canSelectMany: false,
+      openLabel: 'Select file',
+      title: "No opened file found. Choose file manually"
     });
-    localFilePath = userInput;
+  
+    if (!uris || uris.length === 0) {
+      vscode.window.showWarningMessage('No file selected.');
+      return;
+    }
+    localFilePath = uris[0].fsPath;
   }
   return localFilePath;
 }
@@ -188,21 +196,21 @@ function uploadLocalFile(sshConfig, localFilePath, remoteFilePath) {
 }
 
 function getConfig() {
-  return vscode.workspace.getConfiguration().get('bade');
+  return vscode.workspace.getConfiguration('bade');
 }
 
 function parseConfig() {
-  const config = getConfig();
-  if(!config || !config.targets || !config.targets[0] || !config.targets[0].sshConfig || !config.targets[0].remoteWorkspaceDir) {
+  const targets = getConfig().get("targets");
+  if(!targets || !targets[0] || !targets[0].sshConfig || !targets[0].remoteWorkspaceDir) {
     vscode.window.showErrorMessage('Failed to load configs for bade. Double check the settings.json file');
-    console.error("Bade: !config || !config.targets || !config.targets[0] || !config.targets[0].sshConfig || !config.targets[0].remoteWorkspaceDir")
-    console.error("Bade: The found config:" + JSON.stringify(config))
+    console.error("Bade: !targets || !targets[0] || !targets[0].sshConfig || !targets[0].remoteWorkspaceDir")
+    console.error("Bade: The found config:" + JSON.stringify(targets))
     return null;
   }
 
-  const sshConfig = config.targets[0].sshConfig;
+  const sshConfig = targets[0].sshConfig;
   sshConfig.privateKey = fs.readFileSync(sshConfig.privateKey);
-  const remoteWorkspaceDir = config.targets[0].remoteWorkspaceDir
+  const remoteWorkspaceDir = targets[0].remoteWorkspaceDir
 
   if(!sshConfig || !remoteWorkspaceDir) {
     vscode.window.showErrorMessage('Failed to load configs for bade. Double check the settings.json file');
