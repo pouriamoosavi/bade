@@ -2,12 +2,13 @@
   "name": "vscode-extension-bade",
   "displayName": "BADE (Bourne Again DEploy)",
   "description": "Deploy and compare files to a ssh server",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "engines": {
     "vscode": "^1.58.0"
   },
   "activationEvents": [
-    "onCommand:extension.compareFiles", "onCommand:extension.deployFile"
+    "onCommand:extension.compareFiles",
+    "onCommand:extension.deployFile"
   ],
   "main": "./extension.js",
   "contributes": {
@@ -20,7 +21,58 @@
         "command": "extension.deployFile",
         "title": "Bade: Deploy File"
       }
-    ]
+    ],
+    "configuration": {
+      "title": "BADE (Bourne Again DEploy)",
+      "properties": {
+        "bade": {
+          "type": "object",
+          "properties": {
+            "targets": {
+              "type": "array",
+              "default": [],
+              "items": {
+                "type":"object",
+                "default": {},
+                "properties": {
+                  "sshConfig": {
+                    "type": "object",
+                    "properties": {
+                      "host": { "type": "string" },
+                      "port": { "type": "number" },
+                      "username": { "type": "string" },
+                      "password": { "type": "string" },
+                      "privateKey": { "type": ["string", "null"] }
+                    },
+                    "required": ["host"],
+                    "description": "The same as input of ssh2 connect function. https://www.npmjs.com/package/ssh2#client-methods",
+                    "examples": [{
+                      "host": "0.0.0.0",
+                      "username": "ubuntu",
+                      "privateKey": "path/to/key.pem"
+                    },{
+                      "host": "1.1.1.1",
+                      "username": "root",
+                      "password": "rootsSecurePassword",
+                      "algorithms": {
+                        "cipher": ["aes128-ctr","aes192-ctr","aes256-ctr","aes128-cbc","3des-cbc"],
+                        "hmac": ["hmac-md5","hmac-sha1"],
+                        "kex": ["curve25519-sha256","curve25519-sha256@libssh.org","ecdh-sha2-nistp256","ecdh-sha2-nistp384","ecdh-sha2-nistp521","diffie-hellman-group-exchange-sha256","diffie-hellman-group16-sha512","diffie-hellman-group18-sha512","diffie-hellman-group14-sha256"]
+                      }
+                    }]
+                  },
+                  "remoteWorkspaceDir": {
+                    "type": "string",
+                    "description": "The same as dir in other deploy extensions. This will prepend to the file name in remote workspace",
+                    "examples": ["/var/www/myProject"]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
   },
   "dependencies": {
     "axios": "^1.6.2",
@@ -30,6 +82,5 @@
   "scripts": {
     "pack": "vsce package"
   },
-  "repository": {
-  }
+  "repository": {}
 }
