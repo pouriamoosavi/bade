@@ -6,7 +6,7 @@ const path = require("path")
 
 let tmpFilePrefix = path.join(os.tmpdir(), "remote-file-compare-files-1703262838047.");
 
-function activate(context) {
+async function activate(context) {
   let compareFilesDisposable = vscode.commands.registerCommand('extension.compareFiles', async () => {
     let config = parseConfig();
     if(!config) {
@@ -15,45 +15,16 @@ function activate(context) {
 
     let {sshConfig, remoteWorkspaceDir} = config;
     
-    let localFilePath = vscode.window.activeTextEditor.document.uri.fsPath;
-    if(!localFilePath) {
-      const userInput = await vscode.window.showInputBox({
-        prompt: "No opened file found. Input the path of your local file here:",
-        placeHolder: 'Type here...'
-      });
-      localFilePath = userInput;
-    }
-    const format = localFilePath.split(".").pop()
-    const tmpFilePath = tmpFilePrefix + format;
-    const workspaceFolder = getWorkspaceFolder(localFilePath);
-    const workspaceName = workspaceFolder.name || vscode.workspace.rootPath;
-    let remoteFilePath = ""
-    if(workspaceName && countSubstringOccurrences(localFilePath, workspaceName) === 1) {
-      remoteFilePath = localFilePath.substring(localFilePath.indexOf(workspaceName) + workspaceName.length)
-    }
-    if(!remoteFilePath) {
-      const userInput = await vscode.window.showInputBox({
-        prompt: "Failed to generate remote path base on your current opened file. Input the absolute path of the remote file here:",
-        placeHolder: 'Type here...'
-      });
-      remoteFilePath = userInput;
-    }
+    let localFilePath = await getLocalFilePath()
+    let remoteFilePath = await getRemoteFilePath(remoteWorkspaceDir, localFilePath)
 
-    remoteFilePath = path.join(remoteWorkspaceDir, remoteFilePath);
-
-    let remoteFilePathShort = remoteFilePath, localFilePathShort = localFilePath;
-    if(remoteFilePathShort.length > 25) {
-      remoteFilePathShort = remoteFilePathShort.slice(-25);
-    }
-    if(localFilePathShort.length > 25) {
-      localFilePathShort = localFilePathShort.slice(-25);
-    }
+    let {localFilePathShort, remoteFilePathShort} = makeFileNamesShort(localFilePath, remoteFilePath)
     vscode.window.showInformationMessage(`Comparing ${sshConfig.host}:${remoteFilePathShort} with ${localFilePathShort} ...`)
     try {
-      // const localFileContent = fs.readFileSync(localFilePath, 'utf-8');
+      const format = localFilePath.split(".").pop()
+      const tmpFilePath = tmpFilePrefix + format;
       await downloadRemoteFile(sshConfig, remoteFilePath, tmpFilePath);
 
-      // Show a side-by-side comparison
       vscode.commands.executeCommand('vscode.diff', vscode.Uri.file(localFilePath), vscode.Uri.file(tmpFilePath), `Local File ↔ ${sshConfig.host} File`);
     } catch (error) {
       console.error("Bade: ", error);
@@ -69,37 +40,10 @@ function activate(context) {
 
     let {sshConfig, remoteWorkspaceDir} = config;
 
-    let localFilePath = vscode.window.activeTextEditor.document.uri.fsPath;
-    if(!localFilePath) {
-      const userInput = await vscode.window.showInputBox({
-        prompt: "No opened file found. Input the path of your local file here:",
-        placeHolder: 'Type here...'
-      });
-      localFilePath = userInput;
-    }
-    const workspaceFolder = getWorkspaceFolder(localFilePath);
-    const workspaceName = workspaceFolder.name || vscode.workspace.rootPath;
-    let remoteFilePath = ""
-    if(workspaceName && countSubstringOccurrences(localFilePath, workspaceName) === 1) {
-      remoteFilePath = localFilePath.substring(localFilePath.indexOf(workspaceName) + workspaceName.length)
-    }
-    if(!remoteFilePath) {
-      const userInput = await vscode.window.showInputBox({
-        prompt: "Failed to generate remote path base on your current opened file. Input the absolute path of the remote file here:",
-        placeHolder: 'Type here...'
-      });
-      remoteFilePath = userInput;
-    }
+    let localFilePath = await getLocalFilePath()
+    let remoteFilePath = await getRemoteFilePath(remoteWorkspaceDir, localFilePath)
 
-    remoteFilePath = path.join(remoteWorkspaceDir, remoteFilePath);
-
-    let remoteFilePathShort = remoteFilePath, localFilePathShort = localFilePath;
-    if(remoteFilePathShort.length > 25) {
-      remoteFilePathShort = remoteFilePathShort.slice(-25);
-    }
-    if(localFilePathShort.length > 25) {
-      localFilePathShort = localFilePathShort.slice(-25);
-    }
+    let {localFilePathShort, remoteFilePathShort} = makeFileNamesShort(localFilePath, remoteFilePath)
     vscode.window.showInformationMessage(`Deploying ${localFilePathShort} to ${sshConfig.host}:${remoteFilePathShort} ...`)
 
     try {
@@ -112,6 +56,50 @@ function activate(context) {
   });
 
   context.subscriptions.push(compareFilesDisposable, deployFileDisposable);
+}
+
+async function getLocalFilePath() {
+  let localFilePath = vscode.window.activeTextEditor.document.uri.fsPath;
+  if(!localFilePath) {
+    const userInput = await vscode.window.showInputBox({
+      prompt: "No opened file found. Input the path of your local file here:",
+      placeHolder: 'Type here...'
+    });
+    localFilePath = userInput;
+  }
+  return localFilePath;
+}
+
+async function getRemoteFilePath(remoteWorkspaceDir, localFilePath) {
+  const workspaceFolder = getWorkspaceFolder(localFilePath);
+  const workspaceName = workspaceFolder.name || vscode.workspace.rootPath;
+
+  let remoteFilePath = ""
+  if(workspaceName && countSubstringOccurrences(localFilePath, workspaceName) === 1) {
+    remoteFilePath = localFilePath.substring(localFilePath.indexOf(workspaceName) + workspaceName.length)
+  }
+  if(!remoteFilePath) {
+    const userInput = await vscode.window.showInputBox({
+      prompt: "Failed to generate remote path base on your current opened file. Input the absolute path of the remote file here:",
+      placeHolder: 'Type here...'
+    });
+    remoteFilePath = userInput;
+  }
+
+  remoteFilePath = path.join(remoteWorkspaceDir, remoteFilePath);
+  return remoteFilePath;
+}
+
+function makeFileNamesShort(localFilePath, remoteFilePath) {
+  let localFilePathShort = localFilePath, remoteFilePathShort = remoteFilePath;
+  if(localFilePathShort.length > 25) {
+    localFilePathShort = localFilePathShort.slice(-25);
+  }
+  if(remoteFilePathShort.length > 25) {
+    remoteFilePathShort = remoteFilePathShort.slice(-25);
+  }
+
+  return {localFilePathShort, remoteFilePathShort}
 }
 
 function countSubstringOccurrences(mainString, subString) {
