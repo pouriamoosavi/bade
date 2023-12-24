@@ -2,7 +2,7 @@
   "name": "vscode-extension-bade",
   "displayName": "BADE (Bourne Again DEploy)",
   "description": "Deploy and compare files to a ssh server",
-  "version": "1.3.0",
+  "version": "1.4.2",
   "engines": {
     "vscode": "^1.58.0"
   },
@@ -82,5 +82,16 @@
   "scripts": {
     "pack": "vsce package"
   },
-  "repository": {}
+  "icon": "icon.png",
+  "author": {
+    "name": "Pouria Moosavi"
+  },
+  "publisher": "Arabi.ca",
+  "pricing": "Free",
+  "license": "SEE LICENSE IN LICENSE.md",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/pouriamoosavi/bade.git"
+  },
+  "homepage": "https://github.com/pouriamoosavi/bade/blob/master/README.md"
 }
