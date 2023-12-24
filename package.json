@@ -2,7 +2,7 @@
   "name": "vscode-extension-bade",
   "displayName": "BADE (Bourne Again DEploy)",
   "description": "Deploy and compare files to a ssh server",
-  "version": "1.4.2",
+  "version": "1.5.0",
   "engines": {
     "vscode": "^1.58.0"
   },
@@ -32,39 +32,78 @@
               "type": "array",
               "default": [],
               "items": {
-                "type":"object",
+                "type": "object",
                 "default": {},
                 "properties": {
                   "sshConfig": {
                     "type": "object",
                     "properties": {
-                      "host": { "type": "string" },
-                      "port": { "type": "number" },
-                      "username": { "type": "string" },
-                      "password": { "type": "string" },
-                      "privateKey": { "type": ["string", "null"] }
-                    },
-                    "required": ["host"],
-                    "description": "The same as input of ssh2 connect function. https://www.npmjs.com/package/ssh2#client-methods",
-                    "examples": [{
-                      "host": "0.0.0.0",
-                      "username": "ubuntu",
-                      "privateKey": "path/to/key.pem"
-                    },{
-                      "host": "1.1.1.1",
-                      "username": "root",
-                      "password": "rootsSecurePassword",
-                      "algorithms": {
-                        "cipher": ["aes128-ctr","aes192-ctr","aes256-ctr","aes128-cbc","3des-cbc"],
-                        "hmac": ["hmac-md5","hmac-sha1"],
-                        "kex": ["curve25519-sha256","curve25519-sha256@libssh.org","ecdh-sha2-nistp256","ecdh-sha2-nistp384","ecdh-sha2-nistp521","diffie-hellman-group-exchange-sha256","diffie-hellman-group16-sha512","diffie-hellman-group18-sha512","diffie-hellman-group14-sha256"]
+                      "host": {
+                        "type": "string"
+                      },
+                      "port": {
+                        "type": "number"
+                      },
+                      "username": {
+                        "type": "string"
+                      },
+                      "password": {
+                        "type": "string"
+                      },
+                      "privateKey": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
                       }
-                    }]
+                    },
+                    "required": [
+                      "host"
+                    ],
+                    "description": "The same as input of ssh2 connect function. https://www.npmjs.com/package/ssh2#client-methods",
+                    "examples": [
+                      {
+                        "host": "0.0.0.0",
+                        "username": "ubuntu",
+                        "privateKey": "path/to/key.pem"
+                      },
+                      {
+                        "host": "1.1.1.1",
+                        "username": "root",
+                        "password": "rootsSecurePassword",
+                        "algorithms": {
+                          "cipher": [
+                            "aes128-ctr",
+                            "aes192-ctr",
+                            "aes256-ctr",
+                            "aes128-cbc",
+                            "3des-cbc"
+                          ],
+                          "hmac": [
+                            "hmac-md5",
+                            "hmac-sha1"
+                          ],
+                          "kex": [
+                            "curve25519-sha256",
+                            "curve25519-sha256@libssh.org",
+                            "ecdh-sha2-nistp256",
+                            "ecdh-sha2-nistp384",
+                            "ecdh-sha2-nistp521",
+                            "diffie-hellman-group-exchange-sha256",
+                            "diffie-hellman-group16-sha512",
+                            "diffie-hellman-group18-sha512",
+                            "diffie-hellman-group14-sha256"
+                          ]
+                        }
+                      }
+                    ]
                   },
                   "remoteWorkspaceDir": {
                     "type": "string",
                     "description": "The same as dir in other deploy extensions. This will prepend to the file name in remote workspace",
-                    "examples": ["/var/www/myProject"]
+                    "examples": [
+                      "/var/www/myProject"
+                    ]
                   }
                 }
               }
@@ -75,23 +114,25 @@
     }
   },
   "dependencies": {
-    "axios": "^1.6.2",
-    "ssh2": "^1.15.0",
-    "vsce": "^2.15.0"
+    "ssh2": "^1.15.0"
   },
   "scripts": {
-    "pack": "vsce package"
+    "pack": "vsce package",
+    "publish": "vsce publish"
   },
   "icon": "icon.png",
   "author": {
     "name": "Pouria Moosavi"
   },
-  "publisher": "Arabi.ca",
+  "publisher": "Arabica",
   "pricing": "Free",
   "license": "SEE LICENSE IN LICENSE.md",
   "repository": {
     "type": "git",
     "url": "https://github.com/pouriamoosavi/bade.git"
   },
-  "homepage": "https://github.com/pouriamoosavi/bade/blob/master/README.md"
+  "homepage": "https://github.com/pouriamoosavi/bade/blob/master/README.md",
+  "devDependencies": {
+    "vsce": "^2.15.0"
+  }
 }
