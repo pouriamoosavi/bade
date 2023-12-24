@@ -1,7 +1,8 @@
 # BADE (Bourne Again DEploy)
+Yet another deploy extension for VSCode.
 
 ## Why another deploy extension
-Yet another deploy extension for VSCode. All other deploy extensions failed to do a simple deploy on a simple ssh connection for me. So I wrote this.<br>
+All other deploy extensions failed to do a simple deploy on a simple ssh connection for me. So I wrote this.<br>
 It is as simple as possible. 
 
 ## Support and does not support
