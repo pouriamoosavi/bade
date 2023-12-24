@@ -94,7 +94,6 @@ async function getRemoteFilePath(remoteWorkspaceDir, localFilePath) {
     });
     remoteFilePath = userInput;
   }
-
   remoteFilePath = path.join(remoteWorkspaceDir, remoteFilePath);
   return remoteFilePath;
 }
@@ -210,7 +209,9 @@ function parseConfig() {
   }
 
   const sshConfig = targets[0].sshConfig;
-  sshConfig.privateKey = fs.readFileSync(sshConfig.privateKey);
+  if(sshConfig.privateKey) {
+    sshConfig.privateKey = fs.readFileSync(sshConfig.privateKey);
+  }
   const remoteWorkspaceDir = targets[0].remoteWorkspaceDir
 
   if(!sshConfig || !remoteWorkspaceDir) {
