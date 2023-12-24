@@ -61,6 +61,7 @@ async function activate(context) {
 async function getLocalFilePath() {
   let localFilePath = vscode.window?.activeTextEditor?.document?.uri?.fsPath;
   if(!localFilePath) {
+    vscode.window.showWarningMessage('Could not find the local file. Choose manually.');
     const uris = await vscode.window.showOpenDialog({
       canSelectFiles: true,
       canSelectFolders: false,
