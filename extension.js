@@ -5,27 +5,26 @@ const os = require("os")
 const path = require("path")
 
 let tmpFilePrefix = path.join(os.tmpdir(), "remote-file-compare-files-1703262838047.");
+let config;
 
 async function activate(context) {
   let compareFilesDisposable = vscode.commands.registerCommand('extension.compareFiles', async () => {
-    let config = parseConfig();
+    parseConfig();
     if(!config) {
       return;
     }
-
-    let {sshConfig, remoteWorkspaceDir} = config;
     
     let localFilePath = await getLocalFilePath()
-    let remoteFilePath = await getRemoteFilePath(remoteWorkspaceDir, localFilePath)
+    let remoteFilePath = await getRemoteFilePath(localFilePath)
 
     let {localFilePathShort, remoteFilePathShort} = makeFileNamesShort(localFilePath, remoteFilePath)
-    vscode.window.showInformationMessage(`Comparing ${sshConfig.host}:${remoteFilePathShort} with ${localFilePathShort} ...`)
+    vscode.window.showInformationMessage(`Comparing ${config.sshConfig.host}:${remoteFilePathShort} with ${localFilePathShort} ...`)
     try {
       const format = localFilePath.split(".").pop()
       const tmpFilePath = tmpFilePrefix + format;
-      await downloadRemoteFile(sshConfig, remoteFilePath, tmpFilePath);
+      await downloadRemoteFile(remoteFilePath, tmpFilePath);
 
-      vscode.commands.executeCommand('vscode.diff', vscode.Uri.file(localFilePath), vscode.Uri.file(tmpFilePath), `Local File ↔ ${sshConfig.host} File`);
+      vscode.commands.executeCommand('vscode.diff', vscode.Uri.file(localFilePath), vscode.Uri.file(tmpFilePath), `Local File ↔ ${config.sshConfig.host} File`);
     } catch (error) {
       console.error("Bade: ", error);
       vscode.window.showErrorMessage('Error comparing files. ' + error.message);
@@ -33,22 +32,20 @@ async function activate(context) {
   });
 
   let deployFileDisposable = vscode.commands.registerCommand('extension.deployFile', async () => {
-    let config = parseConfig();
+    parseConfig();
     if(!config) {
       return;
     }
 
-    let {sshConfig, remoteWorkspaceDir} = config;
-
     let localFilePath = await getLocalFilePath()
-    let remoteFilePath = await getRemoteFilePath(remoteWorkspaceDir, localFilePath)
+    let remoteFilePath = await getRemoteFilePath(localFilePath)
 
     let {localFilePathShort, remoteFilePathShort} = makeFileNamesShort(localFilePath, remoteFilePath)
-    vscode.window.showInformationMessage(`Deploying ${localFilePathShort} to ${sshConfig.host}:${remoteFilePathShort} ...`)
+    const afk = vscode.window.showInformationMessage(`Deploying ${localFilePathShort} to ${config.sshConfig.host}:${remoteFilePathShort} ...`)
 
     try {
-      await uploadLocalFile(sshConfig, localFilePath, remoteFilePath);
-      vscode.window.showInformationMessage(`Deployed successfully to ${sshConfig.host}:${remoteFilePath}`);
+      await uploadLocalFile(localFilePath, remoteFilePath);
+      vscode.window.showInformationMessage(`Deployed successfully to ${config.sshConfig.host}:${remoteFilePath}`);
     } catch (error) {
       console.error("Bade: ", error);
       vscode.window.showErrorMessage('Error deploying file. ' + error.message);
@@ -79,7 +76,7 @@ async function getLocalFilePath() {
   return localFilePath;
 }
 
-async function getRemoteFilePath(remoteWorkspaceDir, localFilePath) {
+async function getRemoteFilePath(localFilePath) {
   const workspaceFolder = getWorkspaceFolder(localFilePath);
   const workspaceName = workspaceFolder.name || vscode.workspace.rootPath;
 
@@ -94,7 +91,9 @@ async function getRemoteFilePath(remoteWorkspaceDir, localFilePath) {
     });
     remoteFilePath = userInput;
   }
-  remoteFilePath = path.join(remoteWorkspaceDir, remoteFilePath);
+  remoteFilePath = remoteFilePath.replace(/\\/ig, "/") // for windows. convert all \\ to / to work on linux server
+  remoteFilePath = remoteFilePath.replace(/^(\/)*/ig, "") // to remove the first / because we are adding it in the line bellow
+  remoteFilePath = config.remoteWorkspaceDir.replace(/\/$/ig, "") + "/" + remoteFilePath
   return remoteFilePath;
 }
 
@@ -132,7 +131,7 @@ function getWorkspaceFolder(filePath) {
   return workspaceFolders.find(folder => filePath.startsWith(folder.uri.fsPath));
 }
 
-function downloadRemoteFile(sshConfig, remoteFilePath, tmpFilePath) {
+function downloadRemoteFile(remoteFilePath, tmpFilePath) {
   return new Promise((resolve, reject) => {
     const conn = new Client();
     conn.on('ready', () => {
@@ -161,11 +160,11 @@ function downloadRemoteFile(sshConfig, remoteFilePath, tmpFilePath) {
       reject(err)
     })
 
-    conn.connect(sshConfig);
+    conn.connect(config.sshConfig);
   });
 }
 
-function uploadLocalFile(sshConfig, localFilePath, remoteFilePath) {
+function uploadLocalFile(localFilePath, remoteFilePath) {
   return new Promise((resolve, reject) => {
     const conn = new Client();
     conn.on('ready', () => {
@@ -191,7 +190,7 @@ function uploadLocalFile(sshConfig, localFilePath, remoteFilePath) {
       });
     });
 
-    conn.connect(sshConfig);
+    conn.connect(config.sshConfig);
   });
 }
 
@@ -217,10 +216,9 @@ function parseConfig() {
   if(!sshConfig || !remoteWorkspaceDir) {
     vscode.window.showErrorMessage('Failed to load configs for bade. Double check the settings.json file');
     console.error("Bade: !sshConfig || !remoteWorkspaceDir")
-    return null;
   }
 
-  return {sshConfig, remoteWorkspaceDir}
+  config = {sshConfig, remoteWorkspaceDir}
 }
 
 exports.activate = activate;
