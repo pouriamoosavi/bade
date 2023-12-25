@@ -5,7 +5,8 @@ Yet another deploy extension for VSCode.
 All other deploy extensions failed to do a simple deploy on a simple ssh connection for me. So I wrote this.<br>
 It is as simple as possible. 
 
-## Support and does not support
+## Supports and does not support
+It only supports Unix servers (remotes). The local machine can be anything.
 It Just supports SFTP and for now it only accepts one target. (The first target in target list)<br>
 It does not support directory actions (Multiple actions at the same time).<br>
 It does not have a pull command (Which I think I won't add)
