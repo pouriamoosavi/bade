@@ -6,7 +6,7 @@ All other deploy extensions failed to do a simple deploy on a simple ssh connect
 It is as simple as possible. 
 
 ## Supports and does not support
-It only supports Unix servers (remotes). The local machine can be anything.
+It only supports Unix servers (remotes). The local machine can be anything.<br>
 It Just supports SFTP and for now it only accepts one target. (The first target in target list)<br>
 It does not support directory actions (Multiple actions at the same time).<br>
 It does not have a pull command (Which I think I won't add)
