@@ -60,7 +60,6 @@ async function activate(context) {
     const closeDeployMessage = await showProgressMessage(`Deploying ${localFilePathShort} to ${config.sshConfig.host}:${remoteFilePathShort} ...`)
     try {
       await uploadLocalFile(localFilePath, remoteFilePath);
-      vscode.window.showInformationMessage(`Deployed successfully to ${config.sshConfig.host}:${remoteFilePath}`);
     } catch (error) {
       console.error("Bade: ", error);
       vscode.window.showErrorMessage('Error deploying file. ' + error.message);
