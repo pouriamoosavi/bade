@@ -7,6 +7,20 @@ const path = require("path")
 let tmpFilePrefix = path.join(os.tmpdir(), "remote-file-compare-files-1703262838047.");
 let config;
 
+async function showProgressMessage(message) {
+  return new Promise((mainResolve, mainReject) => {
+    vscode.window.withProgress({
+      location: vscode.ProgressLocation.Notification,
+      title: message,
+      cancellable: false
+    }, (progress, token) => {
+        return new Promise(resolve => {
+          mainResolve(resolve)
+        });
+    });
+  })
+}
+
 async function activate(context) {
   let compareFilesDisposable = vscode.commands.registerCommand('extension.compareFiles', async () => {
     parseConfig();
@@ -18,7 +32,7 @@ async function activate(context) {
     let remoteFilePath = await getRemoteFilePath(localFilePath)
 
     let {localFilePathShort, remoteFilePathShort} = makeFileNamesShort(localFilePath, remoteFilePath)
-    vscode.window.showInformationMessage(`Comparing ${config.sshConfig.host}:${remoteFilePathShort} with ${localFilePathShort} ...`)
+    const closeComparingMessage = await showProgressMessage(`Comparing ${config.sshConfig.host}:${remoteFilePathShort} with ${localFilePathShort} ...`)
     try {
       const format = localFilePath.split(".").pop()
       const tmpFilePath = tmpFilePrefix + format;
@@ -28,6 +42,8 @@ async function activate(context) {
     } catch (error) {
       console.error("Bade: ", error);
       vscode.window.showErrorMessage('Error comparing files. ' + error.message);
+    } finally {
+      closeComparingMessage();
     }
   });
 
@@ -41,14 +57,15 @@ async function activate(context) {
     let remoteFilePath = await getRemoteFilePath(localFilePath)
 
     let {localFilePathShort, remoteFilePathShort} = makeFileNamesShort(localFilePath, remoteFilePath)
-    const afk = vscode.window.showInformationMessage(`Deploying ${localFilePathShort} to ${config.sshConfig.host}:${remoteFilePathShort} ...`)
-
+    const closeDeployMessage = await showProgressMessage(`Deploying ${localFilePathShort} to ${config.sshConfig.host}:${remoteFilePathShort} ...`)
     try {
       await uploadLocalFile(localFilePath, remoteFilePath);
       vscode.window.showInformationMessage(`Deployed successfully to ${config.sshConfig.host}:${remoteFilePath}`);
     } catch (error) {
       console.error("Bade: ", error);
       vscode.window.showErrorMessage('Error deploying file. ' + error.message);
+    } finally {
+      closeDeployMessage();
     }
   });
 
