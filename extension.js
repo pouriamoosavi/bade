@@ -59,7 +59,27 @@ async function activate(context) {
     let {localFilePathShort, remoteFilePathShort} = makeFileNamesShort(localFilePath, remoteFilePath)
     const closeDeployMessage = await showProgressMessage(`Deploying ${localFilePathShort} to ${config.sshConfig.host}:${remoteFilePathShort} ...`)
     try {
-      await uploadLocalFile(localFilePath, remoteFilePath);
+      const dirName = path.dirname(remoteFilePath)
+      const dirExists = await checkIfRemoteDirExists(dirName);
+      let cont = false;
+      if(!dirExists) {
+        const response = await vscode.window.showWarningMessage(
+          `The remote does not have this directory "${dirName}". Create it?`,
+          { modal: true },
+          'Yes (continue)',
+        );
+    
+        if (response === 'Yes (continue)') {
+          await recursiveRemoteMkdir(dirName)
+          cont = true;
+        }
+      } else {
+        cont = true;
+      }
+
+      if(cont) {
+        await uploadLocalFile(localFilePath, remoteFilePath);
+      }
     } catch (error) {
       console.error("Bade: ", error);
       vscode.window.showErrorMessage('Error deploying file. ' + error.message);
@@ -203,6 +223,81 @@ function uploadLocalFile(localFilePath, remoteFilePath) {
           });
 
         readStream.pipe(writeStream);
+      });
+    });
+
+    conn.connect(config.sshConfig);
+  });
+}
+
+function checkIfRemoteDirExists(dirName) {
+  return new Promise((resolve, reject) => {
+    const conn = new Client();
+    conn.on('ready', () => {
+      conn.sftp((err, sftp) => {
+        if (err) {
+          reject(err);
+          return conn.end();
+        }
+
+        sftp.stat(dirName, (err, stats) => {
+          conn.end();
+          if(err) {
+            return resolve(false)
+          } else if (stats) {
+            return resolve(true)
+          } else {
+            return resolve(false)
+          }
+        })
+      });
+    });
+
+    conn.connect(config.sshConfig);
+  });
+}
+
+async function asyncMkdir(sftp, dirName) {
+  return new Promise((resolve, reject) => {
+    sftp.mkdir(dirName, (err) => {
+      if(err) {
+        return reject(err)
+      }
+
+      return resolve(true);
+    })
+  })
+}
+
+function recursiveRemoteMkdir(dirName) {
+  return new Promise((resolve, reject) => {
+    const conn = new Client();
+    conn.on('ready', () => {
+      conn.sftp(async (err, sftp) => {
+        if (err) {
+          reject(err);
+          return conn.end();
+        }
+        const parts = dirName.split('/');
+        for (let i = 0; i < parts.length; i++) {
+          const part = parts.slice(0, i + 1).join('/');
+          if(!part.startsWith(config.remoteWorkspaceDir) || part == config.remoteWorkspaceDir) {
+            // Create directories only inside remoteDir.
+            continue;
+          }
+
+          try {
+            await asyncMkdir(sftp, part);
+          } catch (err) {
+            console.error(err)
+            if (err.code !== 4) { // Ignore "Directory already exists" error
+              return reject(err);
+            }
+          }
+        }
+
+        conn.end()
+        return resolve(true)
       });
     });
 
