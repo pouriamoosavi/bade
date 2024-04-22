@@ -38,7 +38,7 @@ async function activate(context) {
       const tmpFilePath = tmpFilePrefix + format;
       await downloadRemoteFile(remoteFilePath, tmpFilePath);
 
-      vscode.commands.executeCommand('vscode.diff', vscode.Uri.file(localFilePath), vscode.Uri.file(tmpFilePath), `Local File ↔ ${config.sshConfig.host} File`);
+      vscode.commands.executeCommand('vscode.diff', vscode.Uri.file(tmpFilePath), vscode.Uri.file(localFilePath), `${config.sshConfig.host} ↔ Local`);
     } catch (error) {
       console.error("Bade: ", error);
       vscode.window.showErrorMessage('Error comparing files. ' + error.message);
