@@ -281,7 +281,7 @@ function recursiveRemoteMkdir(dirName) {
         const parts = dirName.split('/');
         for (let i = 0; i < parts.length; i++) {
           const part = parts.slice(0, i + 1).join('/');
-          if(!part.startsWith(config.remoteWorkspaceDir) || part == config.remoteWorkspaceDir) {
+          if(!part.startsWith(config.remoteWorkspaceDir)/* || part == config.remoteWorkspaceDir */) {
             // Create directories only inside remoteDir.
             continue;
           }
