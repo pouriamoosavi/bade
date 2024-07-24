@@ -18,6 +18,7 @@ After installation, there should be two new commands available (in command palet
 
 ## Config
 `sshConfig` key would be passed to <a href="https://www.npmjs.com/package/ssh2">`ssh2`</a> `connect` method directly. So all the valid inputs for `connect` method can be passed inside `sshConfig` key.
+It is possible to use either a private key or a password to authenticate to the server. If the config does not have either of these keys, a prompt will be shown asking for the password.
 
 ## Example
 A simple example:
@@ -26,11 +27,12 @@ A simple example:
   "bade": {
     "targets": [{
       "sshConfig": {
-        "host": "0.0.0.0", // Remote host or address to ssh to
-        "username": "ubuntu", // Remote user to login to ssh
-        "privateKey": "path/to/key.pem", // Path to private key file
+        "host": "0.0.0.0", // Remote host or address to ssh to (MANDATORY)
+        "username": "ubuntu", // Remote user to login to ssh (MANDATORY)
+        "privateKey": "path/to/key.pem", // Path to private key file (OPTIONAL)
+        "password": "secure_password", // SSH password for this username on the remote side (OPTIONAL)
       },
-      "remoteWorkspaceDir": "/will/prepend/to/path/in/remote" // The same as dir in other deploy extensions
+      "remoteWorkspaceDir": "/will/prepend/to/path/in/remote" // The same as dir in other deploy extensions (MANDATORY)
     }]
   },
 }

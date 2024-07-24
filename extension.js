@@ -23,7 +23,7 @@ async function showProgressMessage(message) {
 
 async function activate(context) {
   let compareFilesDisposable = vscode.commands.registerCommand('extension.compareFiles', async () => {
-    parseConfig();
+    await parseConfig();
     if(!config) {
       return;
     }
@@ -48,7 +48,7 @@ async function activate(context) {
   });
 
   let deployFileDisposable = vscode.commands.registerCommand('extension.deployFile', async () => {
-    parseConfig();
+    await parseConfig();
     if(!config) {
       return;
     }
@@ -309,7 +309,7 @@ function getConfig() {
   return vscode.workspace.getConfiguration('bade');
 }
 
-function parseConfig() {
+async function parseConfig() {
   const targets = getConfig().get("targets");
   if(!targets || !targets[0] || !targets[0].sshConfig || !targets[0].remoteWorkspaceDir) {
     vscode.window.showErrorMessage('Failed to load configs for bade. Double check the settings.json file');
@@ -318,7 +318,7 @@ function parseConfig() {
     return null;
   }
 
-  const sshConfig = targets[0].sshConfig;
+  let sshConfig = targets[0].sshConfig;
   if(sshConfig.privateKey) {
     sshConfig.privateKey = fs.readFileSync(sshConfig.privateKey);
   }
@@ -327,6 +327,14 @@ function parseConfig() {
   if(!sshConfig || !remoteWorkspaceDir) {
     vscode.window.showErrorMessage('Failed to load configs for bade. Double check the settings.json file');
     console.error("Bade: !sshConfig || !remoteWorkspaceDir")
+  }
+
+  if(!sshConfig.privateKey && !sshConfig.password) {
+    const userInput = await vscode.window.showInputBox({
+      placeHolder: `${sshConfig.username}'s password on remote side`,
+      prompt: "Please input the remote server's password. You can also specify a privateKey or password in your config.",
+    });
+    sshConfig.password = userInput
   }
 
   config = {sshConfig, remoteWorkspaceDir}

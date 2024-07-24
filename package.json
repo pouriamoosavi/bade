@@ -2,7 +2,7 @@
   "name": "vscode-extension-bade",
   "displayName": "BADE (Bourne Again DEploy)",
   "description": "Deploy and compare files to a ssh server",
-  "version": "1.7.3",
+  "version": "1.8.3",
   "engines": {
     "vscode": "^1.58.0"
   },
