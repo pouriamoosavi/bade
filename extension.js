@@ -5,7 +5,7 @@ const os = require("os")
 const path = require("path")
 
 let tmpFilePrefix = path.join(os.tmpdir(), "remote-file-compare-files-1703262838047.");
-let config;
+let config = null;
 
 async function showProgressMessage(message) {
   return new Promise((mainResolve, mainReject) => {
@@ -39,9 +39,13 @@ async function activate(context) {
       await downloadRemoteFile(remoteFilePath, tmpFilePath);
 
       vscode.commands.executeCommand('vscode.diff', vscode.Uri.file(tmpFilePath), vscode.Uri.file(localFilePath), `${config.sshConfig.host} ↔ Local`);
-    } catch (error) {
-      console.error("Bade: ", error);
-      vscode.window.showErrorMessage('Error comparing files. ' + error.message);
+    } catch (err) {
+      console.error("Bade: ", err);
+      if(err.code === 2) { // No such file error
+        vscode.window.showErrorMessage("Error comparing files. Couldn't find this file on the remote.");
+      } else {
+        vscode.window.showErrorMessage('Error comparing files. ' + err.message);
+      }
     } finally {
       closeComparingMessage();
     }
@@ -80,9 +84,9 @@ async function activate(context) {
       if(cont) {
         await uploadLocalFile(localFilePath, remoteFilePath);
       }
-    } catch (error) {
-      console.error("Bade: ", error);
-      vscode.window.showErrorMessage('Error deploying file. ' + error.message);
+    } catch (err) {
+      console.error("Bade: ", err);
+      vscode.window.showErrorMessage('Error deploying file. ' + err.message);
     } finally {
       closeDeployMessage();
     }
@@ -310,6 +314,8 @@ function getConfig() {
 }
 
 async function parseConfig() {
+  config = null; // set it to null so if we return in the middle of this function, we can detect it in the parent function
+
   const targets = getConfig().get("targets");
   if(!targets || !targets[0] || !targets[0].sshConfig || !targets[0].remoteWorkspaceDir) {
     vscode.window.showErrorMessage('Failed to load configs for bade. Double check the settings.json file');
@@ -331,9 +337,13 @@ async function parseConfig() {
 
   if(!sshConfig.privateKey && !sshConfig.password) {
     const userInput = await vscode.window.showInputBox({
-      placeHolder: `${sshConfig.username}'s password on remote side`,
+      placeHolder: `${sshConfig.user}'s password on remote side`,
       prompt: "Please input the remote server's password. You can also specify a privateKey or password in your config.",
     });
+    if(userInput === undefined) {
+      vscode.window.showWarningMessage("Operation canceled by user.")
+      return null;
+    }
     sshConfig.password = userInput
   }
 
