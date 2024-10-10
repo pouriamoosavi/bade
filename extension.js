@@ -337,8 +337,9 @@ async function parseConfig() {
 
   if(!sshConfig.privateKey && !sshConfig.password) {
     const userInput = await vscode.window.showInputBox({
-      placeHolder: `${sshConfig.user}'s password on remote side`,
+      placeHolder: `${sshConfig.username}'s password on remote side`,
       prompt: "Please input the remote server's password. You can also specify a privateKey or password in your config.",
+      password: true,
     });
     if(userInput === undefined) {
       vscode.window.showWarningMessage("Operation canceled by user.")
