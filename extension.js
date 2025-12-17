@@ -310,7 +310,12 @@ function recursiveRemoteMkdir(dirName) {
 }
 
 function getConfig() {
-  return vscode.workspace.getConfiguration('bade');
+  const editor = vscode.window.activeTextEditor
+  if (!editor) return null;
+  return vscode.workspace.getConfiguration(
+    "bade",
+    editor.document.uri
+  )
 }
 
 async function parseConfig() {
