@@ -6,6 +6,7 @@ const path = require("path")
 
 let tmpFilePrefix = path.join(os.tmpdir(), "remote-file-compare-files-1703262838047.");
 let config = null;
+let selectedDocumentUri = null; // Store selected document URI during command execution
 
 async function showProgressMessage(message) {
   return new Promise((mainResolve, mainReject) => {
@@ -48,6 +49,7 @@ async function activate(context) {
       }
     } finally {
       closeComparingMessage();
+      selectedDocumentUri = null; // Clear stored document URI when command completes
     }
   });
 
@@ -89,6 +91,7 @@ async function activate(context) {
       vscode.window.showErrorMessage('Error deploying file. ' + err.message);
     } finally {
       closeDeployMessage();
+      selectedDocumentUri = null; // Clear stored document URI when command completes
     }
   });
 
@@ -96,23 +99,29 @@ async function activate(context) {
 }
 
 async function getLocalFilePath() {
-  let localFilePath = vscode.window?.activeTextEditor?.document?.uri?.fsPath;
-  if(!localFilePath) {
-    vscode.window.showWarningMessage('Could not find the local file. Choose manually.');
-    const uris = await vscode.window.showOpenDialog({
-      canSelectFiles: true,
-      canSelectFolders: false,
-      canSelectMany: false,
-      openLabel: 'Select file',
-      title: "No opened file found. Choose file manually"
-    });
+  // Use the stored document URI if available (from getConfig/getDocumentUri)
+  // Otherwise try active editor, then prompt
+  let localFilePath = null;
   
-    if (!uris || uris.length === 0) {
+  if (selectedDocumentUri) {
+    localFilePath = selectedDocumentUri.fsPath;
+  } else {
+    const editor = vscode.window.activeTextEditor;
+    if (editor) {
+      localFilePath = editor.document.uri.fsPath;
+      selectedDocumentUri = editor.document.uri;
+    }
+  }
+
+  if(!localFilePath) {
+    const documentUri = await getDocumentUri();
+    if (!documentUri) {
       vscode.window.showWarningMessage('No file selected.');
       return;
     }
-    localFilePath = uris[0].fsPath;
+    localFilePath = documentUri.fsPath;
   }
+  
   return localFilePath;
 }
 
@@ -309,19 +318,55 @@ function recursiveRemoteMkdir(dirName) {
   });
 }
 
-function getConfig() {
-  const editor = vscode.window.activeTextEditor
-  if (!editor) return null;
+async function getDocumentUri() {
+  // First check if we have a stored document URI from a previous selection
+  if (selectedDocumentUri) {
+    return selectedDocumentUri;
+  }
+
+  // Then check if there's an active text editor
+  const editor = vscode.window.activeTextEditor;
+  if (editor) {
+    selectedDocumentUri = editor.document.uri;
+    return selectedDocumentUri;
+  }
+
+  // If no active editor, prompt user to select a file
+  const uris = await vscode.window.showOpenDialog({
+    canSelectFiles: true,
+    canSelectFolders: false,
+    canSelectMany: false,
+    openLabel: 'Select file',
+    title: "No opened file found. Choose file to deploy or compare"
+  });
+
+  if (!uris || uris.length === 0) {
+    return null;
+  }
+
+  // Store the selected URI for reuse during this command execution
+  selectedDocumentUri = uris[0];
+  return selectedDocumentUri;
+}
+
+async function getConfig() {
+  const documentUri = await getDocumentUri();
+  if (!documentUri) return null;
   return vscode.workspace.getConfiguration(
     "bade",
-    editor.document.uri
+    documentUri
   )
 }
 
 async function parseConfig() {
   config = null; // set it to null so if we return in the middle of this function, we can detect it in the parent function
+  selectedDocumentUri = null; // Reset selected document URI at the start of each command
 
-  const targets = getConfig().get("targets");
+  const configObj = await getConfig();
+  if (!configObj) {
+    return null;
+  }
+  const targets = configObj.get("targets");
   if(!targets || !targets[0] || !targets[0].sshConfig || !targets[0].remoteWorkspaceDir) {
     vscode.window.showErrorMessage('Failed to load configs for bade. Double check the settings.json file');
     console.error("Bade: !targets || !targets[0] || !targets[0].sshConfig || !targets[0].remoteWorkspaceDir")
